@@ -1,0 +1,4 @@
+(executable
+ (public_name kHorn)
+ (name main)
+ (libraries kHorn))
