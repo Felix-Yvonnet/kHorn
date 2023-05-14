@@ -9,7 +9,7 @@ $(NAME):
 	rm src/*.c*
 
 converter:
-	ocamlc -o src/horn_converter.ml
+	ocamlc -o converter src/horn_converter.ml
 	rm src/*.c* src/*.o
 
 rapport:
@@ -33,6 +33,6 @@ $(TESTSRCUNSAT): $(NAME)
 	./$< tests/unsatisfiable/$@
 
 clean:
-	rm main rapport.pdf
+	rm main rapport.pdf converter
 
-.PHONY: $(NAME) clean rapport
+.PHONY: $(NAME) clean rapport 
