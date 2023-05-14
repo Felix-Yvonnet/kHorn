@@ -8,4 +8,6 @@ _build/
 # vscode
 .vscode/
 
-
+# ocaml files
+*.c*
+*.0
