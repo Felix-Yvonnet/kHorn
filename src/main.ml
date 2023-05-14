@@ -13,10 +13,10 @@ type cnf = int * clause list
 
 
 let my_assert test message = 
-  assert (if not test then print_string message; test)
+  assert (if not test then (print_string message; print_char '\n'); test)
 
 let find_num_vars_num_clauses text =
-  let found = ref false and indice = ref 0 and num_vars = ref 0 and num_clauses = ref 0 and n = String.length text and is_neg = ref false in
+  let found = ref false and indice = ref 0 and num_vars = ref 0 and num_clauses = ref 0 and n = String.length text in
   while !indice < n && not !found do
     let new_val = ref (int_of_char text.[!indice] - int_of_char '0') in
     if !new_val>=0 && !new_val<10 then begin
@@ -44,24 +44,35 @@ let find_num_vars_num_clauses text =
   !num_vars, !num_clauses
 
 let get_number text indice =
-  let op = if text.[!indice] = '-' then (incr indice; (-)) else (+) in
-  let new_val = ref (int_of_char text.[!indice] - int_of_char '0') and num = ref 0 in
+  let op = if text.[!indice] = '-' then (incr indice; (-)) else (+) and n = String.length text and num = ref 0 in
+	let old_indice = !indice in
+	while !indice < n && text.[!indice] != ' ' do incr indice done;
+	for k=old_indice to !indice-1 do 
+		let new_val = int_of_char text.[k]  - int_of_char '0' in
+		my_assert (new_val >= 0 && new_val <= 9) "Wrong kind of litteral, expected integer";
+		num := op (!num * 10) new_val;
+	done;
+	!num
+
+		
+	
+	(*let new_val = ref (int_of_char text.[!indice] - int_of_char '0') and num = ref 0 in
   while !new_val>=0 && !new_val<10 do 
     incr indice;
     new_val := int_of_char text.[!indice] - int_of_char '0';
-    num := op (!num * 10) !new_val 
+    num := !num * 10 + !new_val 
   done;
   my_assert (text.[!indice] = ' ') "Wrong format var declaration"; 
-  !num
+  op !num*)
+  
 
 let parse_disj line =
-  let not_reached_fin = ref true and indice = ref 0 and n = String.length line and rez: litteral list ref = ref [] and found = ref false in
-  while not !found && !indice < n && !not_reached_fin do
+  let indice = ref 0 and n = String.length line and rez: litteral list ref = ref [] and found = ref false in
+  while not !found && !indice < n do
     while line.[!indice] = ' ' do incr indice done;
     let new_var = get_number line indice in 
     if new_var = 0 then found := true
     else rez := (if new_var < 0 then Neg(- new_var) else Pos new_var) :: !rez ;
-    incr indice
   done;
   my_assert (!found) "A 0 is expected at the end of the line";
   !rez
@@ -236,8 +247,11 @@ let rec solve_khorn_clause_quadra list_of_pos_terms = function
 		)
 
 
-let main formula = 
-	if not (check_is_Horn_normal_form formula) then failwith "not an Horn normal formula";
-	solve_khorn_clause_quadra [] formula
-
-let () = main [[Neg 2; Neg 3]; [Pos 2; Neg 3]; [Pos 3]]; pretty_print_list_list [[Neg 2; Neg 3]; [Pos 2; Neg 3]; [Pos 3]]
+let () = 
+	let formulas = parse in
+	for k= 0 to Array.length formulas-1 do
+		Printf.printf "%c[33mThe file %s contains the formula:%c[0m" (char_of_int 27) Sys.argv.(k+1) (char_of_int 27) ;
+		pretty_print_list_list !(formulas.(k)); print_string "\n";
+		if not (check_is_Horn_normal_form !(formulas.(k))) then failwith "not an Horn normal formula";
+		solve_khorn_clause_quadra [] !(formulas.(k))
+	done;
