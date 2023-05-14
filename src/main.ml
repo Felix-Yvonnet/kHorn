@@ -12,10 +12,10 @@ type clause = litteral list
 type cnf = int * clause list
 
 
-let my_assert test message = 
+let my_assert test message = (* a simple error handler *)
   assert (if not test then (print_string message; print_char '\n'); test)
 
-let find_num_vars_num_clauses text =
+let find_num_vars_num_clauses text = (* in order to get the number of variables and clauses *)
   let found = ref false and indice = ref 0 and num_vars = ref 0 and num_clauses = ref 0 and n = String.length text in
   while !indice < n && not !found do
     let new_val = ref (int_of_char text.[!indice] - int_of_char '0') in
@@ -43,7 +43,7 @@ let find_num_vars_num_clauses text =
   my_assert !found "No expression found, the test should start with \"p cnf <num vars> <num clauses>\"";
   !num_vars, !num_clauses
 
-let get_number text indice =
+let get_number text indice = (* to transfrom a string into a number *)
   let op = if text.[!indice] = '-' then (incr indice; (-)) else (+) and n = String.length text and num = ref 0 in
 	let old_indice = !indice in
 	while !indice < n && text.[!indice] != ' ' do incr indice done;
@@ -53,20 +53,9 @@ let get_number text indice =
 		num := op (!num * 10) new_val;
 	done;
 	!num
-
-		
-	
-	(*let new_val = ref (int_of_char text.[!indice] - int_of_char '0') and num = ref 0 in
-  while !new_val>=0 && !new_val<10 do 
-    incr indice;
-    new_val := int_of_char text.[!indice] - int_of_char '0';
-    num := !num * 10 + !new_val 
-  done;
-  my_assert (text.[!indice] = ' ') "Wrong format var declaration"; 
-  op !num*)
   
 
-let parse_disj line =
+let parse_disj line = (* parse a line (ie a disjunction) *)
   let indice = ref 0 and n = String.length line and rez: litteral list ref = ref [] and found = ref false in
   while not !found && !indice < n do
     while line.[!indice] = ' ' do incr indice done;
@@ -79,7 +68,7 @@ let parse_disj line =
 
 
 
-let parse = 
+let parse = (* simple parser to read DIMACS format *)
 	my_assert (Array.length Sys.argv > 0) "Too few arguments given to parse"; 
 	let rez:litteral list list ref array = Array.make (Array.length Sys.argv - 1) (ref []) in
 
@@ -212,22 +201,22 @@ let rec pretty_printer_terms = function
 
 
 let pos_answer list_of_terms =
-	print_string "This formula can be satisfied, with the following terms set at true: " ;
+	Printf.printf "%c[32mThis formula can be satisfied%c[0m, with the following terms set at true: " (char_of_int 27) (char_of_int 27);
 	pretty_printer_terms list_of_terms ;
 	print_string "And the rest at false\n"
 
 
-let neg_answer () = print_string "This formula cannot be satisfied\n"
+let neg_answer () = Printf.printf "%c[31mThis formula cannot be satisfied%c[0m\n" (char_of_int 27) (char_of_int 27)
 
 
 let rec pretty_print_list = function
 	| [] -> ()
-	| x :: xs ->  (match x with | Pos n -> print_int n | Neg n -> print_int (-n)); if xs != [] then  pretty_print_list xs
+	| x :: xs ->  (match x with | Pos n -> print_int n | Neg n -> print_string "¬"; print_int (n)); if xs != [] then print_string " \\/ "; pretty_print_list xs
 
 let rec pretty_print_list_list = function
 	| [] -> print_string "\n"
 	| x :: xs -> 
-		print_string "("; pretty_print_list x; print_string ")"; if xs != [] then print_string ";"; pretty_print_list_list xs
+		print_string "("; pretty_print_list x; print_string ")"; if xs != [] then print_string " /\\ \n"; pretty_print_list_list xs
 
 let rec solve_khorn_clause_quadra list_of_pos_terms = function
 	| [] -> pos_answer list_of_pos_terms
@@ -250,8 +239,9 @@ let rec solve_khorn_clause_quadra list_of_pos_terms = function
 let () = 
 	let formulas = parse in
 	for k= 0 to Array.length formulas-1 do
-		Printf.printf "%c[33mThe file %s contains the formula:%c[0m" (char_of_int 27) Sys.argv.(k+1) (char_of_int 27) ;
-		pretty_print_list_list !(formulas.(k)); print_string "\n";
+		Printf.printf "The file %c[35m%s%c[0m contains the formula:" (char_of_int 27) Sys.argv.(k+1) (char_of_int 27) ;
+		pretty_print_list_list !(formulas.(k));
 		if not (check_is_Horn_normal_form !(formulas.(k))) then failwith "not an Horn normal formula";
-		solve_khorn_clause_quadra [] !(formulas.(k))
+		solve_khorn_clause_quadra [] !(formulas.(k));
+		print_char '\n';
 	done;

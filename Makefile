@@ -1,7 +1,8 @@
 NAME			= main
 
-TESTSRC			= $(shell cd tests/satisfiable/ && find -name '*.cnf')
-TESTSRCNOEXT	= $(SRC:.cnf=)
+TESTSRCSAT			= $(shell cd tests/satisfiable/ && find -name '*.cnf')
+
+TESTSRCUNSAT			= $(shell cd tests/unsatisfiable/ && find -name '*.cnf')
 
 $(NAME):
 	ocamlc -o $(NAME) src/$(NAME).ml
@@ -17,11 +18,19 @@ rapport:
 	firefox rapport.pdf
 
 
-all_tests: $(TESTSRC)
+all_tests: $(TESTSRCSAT) $(TESTSRCUNSAT)
 
-$(TESTSRC): $(NAME)
+sat: 
+	$(TESTSRCSAT) 
+unsat: 
+	$(TESTSRCUNSAT)
+
+
+$(TESTSRCSAT): $(NAME)
 	./$< tests/satisfiable/$@
 
+$(TESTSRCUNSAT): $(NAME)
+	./$< tests/unsatisfiable/$@
 
 clean:
 	rm main rapport.pdf
