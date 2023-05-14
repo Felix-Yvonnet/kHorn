@@ -12,6 +12,80 @@ type clause = litteral list
 type cnf = int * clause list
 
 
+let my_assert test message = 
+  assert (if not test then print_string message; test)
+
+let find_num_vars_num_clauses text =
+  let found = ref false and indice = ref 0 and num_vars = ref 0 and num_clauses = ref 0 and n = String.length text and is_neg = ref false in
+  while !indice < n && not !found do
+    let new_val = ref (int_of_char text.[!indice] - int_of_char '0') in
+    if !new_val>=0 && !new_val<10 then begin
+      found := true;
+      num_vars := !new_val;
+      while !new_val>=0 && !new_val<10 do 
+        incr indice;
+        new_val := int_of_char text.[!indice] - int_of_char '0';
+        num_vars := !num_vars * 10 + !new_val 
+      done;
+      while !indice < n && text.[!indice] = ' ' do incr indice; done;
+      my_assert (!indice<n) "Unexpected end of line, the test should start with \"p cnf <num vars> <num clauses>\"";
+      new_val := int_of_char text.[!indice] - int_of_char '0';
+      my_assert (!new_val >= 0 && !new_val <= 9) ("Unexpected token " ^ String.make 1 text.[!indice] ^ ", integer required");
+      num_clauses := !new_val;
+      while !new_val>=0 && !new_val<10 do 
+        incr indice;
+        new_val := int_of_char text.[!indice] - int_of_char '0';
+        num_clauses := !num_clauses * 10 + !new_val 
+      done;
+    end;
+    incr indice
+  done;
+  my_assert !found "No expression found, the test should start with \"p cnf <num vars> <num clauses>\"";
+  !num_vars, !num_clauses
+
+let get_number text indice =
+  let op = if text.[!indice] = '-' then (incr indice; (-)) else (+) in
+  let new_val = ref (int_of_char text.[!indice] - int_of_char '0') and num = ref 0 in
+  while !new_val>=0 && !new_val<10 do 
+    incr indice;
+    new_val := int_of_char text.[!indice] - int_of_char '0';
+    num := op (!num * 10) !new_val 
+  done;
+  my_assert (text.[!indice] = ' ') "Wrong format var declaration"; 
+  !num
+
+let parse_disj line =
+  let not_reached_fin = ref true and indice = ref 0 and n = String.length line and rez: litteral list ref = ref [] and found = ref false in
+  while not !found && !indice < n && !not_reached_fin do
+    while line.[!indice] = ' ' do incr indice done;
+    let new_var = get_number line indice in 
+    if new_var = 0 then found := true
+    else rez := (if new_var < 0 then Neg(- new_var) else Pos new_var) :: !rez ;
+    incr indice
+  done;
+  my_assert (!found) "A 0 is expected at the end of the line";
+  !rez
+
+
+
+let parse = 
+	my_assert (Array.length Sys.argv > 0) "Too few arguments given to parse"; 
+	let rez:litteral list list ref array = Array.make (Array.length Sys.argv - 1) (ref []) in
+
+	for k=1 to Array.length Sys.argv - 1 do
+		let name_of_file = Sys.argv.(k) in
+
+		let text = Arg.read_arg(name_of_file) in
+
+		my_assert (Array.length text > 0) "The file is empty";
+		my_assert (String.starts_with ~prefix:"p cnf " text.(0)) "The test should start with \"p cnf <num vars> <num clauses>\", pay attention to the spaces";
+
+		for i = 1 to Array.length text -1 do
+			rez.(k-1) := parse_disj text.(i) :: !(rez.(k-1))
+		done;
+  done;
+	rez
+
 
 let check_is_khorn_clause cl =
 	(*

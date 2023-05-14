@@ -10,4 +10,7 @@ _build/
 
 # ocaml files
 *.c*
-*.0
+*.o
+
+# tests
+*.out
