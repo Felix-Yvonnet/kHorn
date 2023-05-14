@@ -109,13 +109,81 @@ module HNF = struct
 
   let to_HNF formulae = 
     let f = to_list (factorize_formula (to_NNF formulae)) in 
-    if is_horn f then f
-    else (
-      pretty_print f;
-      failwith "the formula is not transformable into HNF formula"
-    )
+    if is_horn f then Some(f)
+    else None
 
 end
+
+
+let find_indice_par code =
+  let found = ref false and indice = ref 0 and num_diff = ref 0 and n = String.length code in
+  while !indice < n && not !found do
+    incr indice;
+    if code.[!indice] = ')' then decr num_diff;
+    if !num_diff = 0 then found := true;
+  done;
+  let indice_par = !indice in
+  while !indice < n && code.[!indice] == ' ' do
+    incr indice
+  done;
+  let type_op = match !indice with
+    | i when i >= n -> -1
+    | i when i < n - 1 && code.[i] == 'e' && code.[i+1] == 't' -> 0
+    | i when i < n - 1 && code.[i] == 'o' && code.[i+1] == 'u' -> 1
+    | _ -> failwith "Invalid message"
+  in
+  indice_par, type_op
+
+let find_indice_num code =
+  let indice = ref 0 and found = ref false and corr_num = ref 0 and n = String.length code in
+  while !indice < n && not !found do
+    let num = int_of_char code.[!indice] - int_of_char '0' in
+    if num < 0 || num > 9 then found := true
+    else corr_num := !corr_num * 10 + num; 
+    incr indice;
+  done;
+  let ind_num = !indice in
+  while !indice < n && code.[!indice] = ' ' do
+  incr indice;
+  done;
+  let type_op = match !indice with
+  | i when i >= n -> -1
+  | i when i < n - 1 && code.[i] == 'e' && code.[i+1] == 't' -> 0
+  | i when i < n - 1 && code.[i] == 'o' && code.[i+1] == 'u' -> 1
+  | i when i < n && code.[i] == ')' -> -1
+  | i when code.[i] == 'u' && code.[i-1] == 'o' -> 1
+  | i when code.[i] == 't' && code.[i-1] == 'e' -> 0
+  | _ -> print_char code.[!indice]; print_char code.[!indice+1]; print_char code.[!indice-1]; failwith "Invalid message"
+in
+ind_num, !corr_num, type_op
+
+
+let rec parser (code: string): Formula.t  = 
+  if String.length code = 0 then failwith "Problem here";
+  match code.[0] with
+  | ' ' -> parser (String.sub code 1 (String.length code -1))
+  | '-' -> print_int 1; Neg (parser (String.sub code 1 (String.length code - 1))) 
+  | '(' -> ( print_int 2;
+    let ind, type_op = find_indice_par code in
+    match type_op with
+      | -1 -> parser (String.sub code 1 (String.length code -2))
+      | 0 -> Conj(parser (String.sub code 1 (ind - 1)), parser (String.sub code (ind + 1) (String.length code - ind)))
+      | 1 -> Disj(parser (String.sub code 1 (ind - 1)), parser (String.sub code (ind + 1) (String.length code - ind)))
+      | _ -> failwith "Invalid number"
+  )
+  | c -> ( print_int 3;
+    let ind, corr_num, type_op = find_indice_num code in 
+    if ind = -1 then failwith "Invalid number3";
+    match type_op with
+      | -1 -> Formula.Lit (Var.to_var corr_num)
+      | 0 -> Conj(Formula.Lit (Var.to_var corr_num), parser (String.sub code (ind + 1) (String.length code -  -1)))
+      | 1 -> Disj(Formula.Lit (Var.to_var corr_num), parser (String.sub code (ind + 1) (String.length code - ind -1)))
+      | _ -> failwith "Invalid number2"
+    )
+
+    
+    
+
 
 
 open Formula
@@ -124,4 +192,8 @@ open Var
 
 let formula = Conj (Lit (to_var 1), Disj (Lit (to_var 0), Lit (to_var 2)))
 
-let () = HNF.pretty_print (HNF.to_HNF formula)
+
+let formula2 = "1 ou (2 et 3) ou 1"
+let ff2 = parser formula2
+
+let () = match HNF.to_HNF ff2 with | Some(f) -> HNF.pretty_print f | None -> print_string "not a horn formula\n"
