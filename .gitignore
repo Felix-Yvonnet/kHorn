@@ -9,9 +9,9 @@ _build/
 .vscode/
 
 # ocaml files
-*.c*
-*.o
+src/*.c* 
+src/*.o
 
-# tests
+# changes
 *.out
 main
