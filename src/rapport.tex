@@ -1,0 +1,82 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage{algpseudocode}
+
+\title{kHORN}
+\author{Joseph Lenormand, Félix Yvonnet}
+\date{April 2023}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+On cherche à proposer un sat solver dans le cas simplifié des clauses de Horn décrit ci-après. Pour cela, nous allons proposer un algorithme en temps $O(n*m)$, avec $m$ le nombre de clauses et $n$ le nombre total de littéraux dans la formule, testant la satisfiabilité d’une formule en forme Horn-NF.\\
+
+On appelle une clause de Horn une formule logique n'utilisant, sous sa forme normale, que la disjonction ($\vee$) et la négation ($\neg$), et contenant sous ces conditions au plus une clause positive (sans négation). Elles peuvent donc s'écrire $\neg p_1\vee\cdots\vee\neg p_n\vee q$. Cela correspond intuitivement aux implications. On dit qu'une formule et sous la forme normale de Horn, noté Horn-NF, si c'est une conjonction de clauses de Horn.
+
+\section{Algorithme de résolubilité}
+\subsection{Algorithme}
+\begin{algorithmic}
+\Function{kHornSolver}{clauses: List[List[Int]]}
+    \State $VarVraies\gets EmptyList$
+    \Loop
+        \If{$clauses$ vide}
+            \State \Return Vrai
+        \EndIf
+        \State $current\gets$ plus petite clause de $clauses$
+        \If{$|current|=0$}
+            \State \Return Faux
+        \ElsIf{$|current|=1$}
+            \If{$current[0]=\bot$}
+                \State \Return $Faux$
+            \Else
+                \State ajoute $current[0]$ à $VarVraies$
+                \State supprime toutes les occurences de $\neg current[0]$ dans les autres éléments de $clauses$
+                \State supprime toutes les clauses contenant $current[0]$
+            \EndIf
+        \Else 
+            \State \Return Vrai
+        \EndIf
+    \EndLoop
+\EndFunction
+\end{algorithmic}
+
+\subsection{Preuves}
+\subsubsection{terminaison}
+Remarquons rapidement que cet algorithme se termine. En effet le nombre total de variables libres décroit strictement à chaque itération de la boucle.
+
+\subsubsection{correction}
+La variable "$clauses$" est la liste des clauses de Horn représentées au format DIMACS où une première liste représente la conjonction des clauses de Horn qui sont elles mêmes représentées par une liste d'entier représentant la disjontion entre littéraux. Remarquons que toute clause de Horn est dans l'un des cas listés ci-après, où $p_1,\cdots,p_n,q$ sont des propositions (possiblement constantes égales à $\top$ ou $\bot$) :
+\begin{enumerate}
+    \item une unique clause $q$ 
+    \item une disjonction de négation: $\neg p_1\vee\cdots\vee\neg p_n$ avec $n\geq1$
+    \item le cas global: $\neg p_1\vee\cdots\vee\neg p_n\vee q$ avec $n\geq1$
+\end{enumerate}
+Or les cas $2$ et $3$ sont satisfiables en prenant $\forall i, p_i=\bot$. Il ne reste donc qu'à fixer $q$ à $\top$ dans toutes les formules de type (1) pour savoir si on trouve des contradictions.
+
+\subsubsection{complexité}
+\paragraph{temporelle:}
+Notons $m$ le nombre de conjonctions dans la formule de Horn et $n$ le nombre total de littéraux dans la formule.\\
+On a donc au plus $m$ littéraux positifs dans la formule.\\
+Or à chaque tour de boucle soit on est dans un état terminal, soit on supprime toutes les clauses contenant le littéral dont on vient de fixer la valeur à $\top$. Le nombre de littéraux positifs est donc strictement décroissant à chaque itération de la boucle. On fait donc au plus $m$ tour de boucle. \\
+Finalement, à l'intérieur de la boucle, toutes les opérations consistent en de la recherche ou de la suppression dans une liste, ce qui se fait en temps linéaire, plus quelques opérations en temps constant.  \\
+Ainsi la complexité est en $O(m*n)$.
+
+\paragraph{spatiale:}
+On garde les mêmes définitions pour $m$ et $n$.
+\newline La seule structure qu'on utilise en plus de celles données en argument est la liste $VarVraies$, qui contient au plus $m$ littéraux. \\
+Ainsi, on a une complexité spatiale en $O(m)$.
+
+\subsection{Nombre minimal de variables à évaluer à $\top$}
+Cet algorithme vérifie par ailleurs la propriété demandée en question $4.$, le nombre minimal de variables à évaluer à $\top$ pour satisfaire la formule correspond à la longueur finale de $VarVraies$ si le résultat envoyé est true.\\
+En effet, le programme étant correct, fixer toutes les variables de $VarVraies$ à $\top$ suffit à vérifier la formule donnée.\\
+Si, par l'absurde, il existe une solution avec strictement moins de variables évaluées à $\top$, alors en particulier, il existe $q\in VarVraies$, telle que $q$ est évaluée à $\bot$ dans ladite solution optimale.\\
+Prenons $\tilde{q}$ la première clause mise à $\top$ dans notre algorithme, telle qu'elle est à $\bot$ dans la solution optimale.\\
+Toutes les variables évaluées à $\top$ avant elle dans l'algorithme sont aussi évaluées à $\top$ dans la solution optimale. \\
+Donc une des clauses, en faisant les simplifications de notre algorithme, est de la forme $\tilde{q}$, puisque $\tilde{q}$ a été traitée après l'évaluation à $\top$ des variables la précédant dans $VarVraies$.\\
+Dès lors, la solution optimale évalue cette clause de la conjonction à $\bot$, soit toute la formule à $\bot$, absurde.\\
+D'où le fait que cet algorithme répond aussi à la question $4.$
+
+\end{document}
+

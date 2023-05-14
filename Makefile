@@ -1,8 +1,17 @@
+main:
+	ocamlopt -o main src/parser/dimacs.ml src/main.ml
+	rm *.c* *.o
 
-SRC						= src/parser/dimacs.ml \
-						  src/main.ml
+parser:
+	ocamlc -o src/parser/horn_converter.ml
+	rm *.c* *.o
 
-CONVERTER_ 				= src/parser/horn_
+rapport:
+	pdflatex src/rapport.tex 
+	rm *.log *.aux
+	firefox rapport.pdf
 
+clean:
+	rm main
 
-main: $(OBJ)
+.PHONY: main
