@@ -192,8 +192,9 @@ open Var
 
 let formula = Conj (Lit (to_var 1), Disj (Lit (to_var 0), Lit (to_var 2)))
 
-
+(*
 let formula2 = "1 ou (2 et 3) ou 1"
 let ff2 = parser formula2
+*)
 
-let () = match HNF.to_HNF ff2 with | Some(f) -> HNF.pretty_print f | None -> print_string "not a horn formula\n"
+let () = match HNF.to_HNF formula with | Some(f) -> HNF.pretty_print f | None -> print_string "not a horn formula\n"
