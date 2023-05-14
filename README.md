@@ -3,6 +3,6 @@ Analyse des formes normales de Horn et recherche d'algorithmes polynomial y rép
 
 ## Rapport
 Pour lire le rapport lancez 
-```
+```bash
 make rapport
 ```

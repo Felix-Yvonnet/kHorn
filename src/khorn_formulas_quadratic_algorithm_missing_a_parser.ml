@@ -11,13 +11,9 @@ type clause = litteral list
 (* and conjunctive normal formula as clauses lists, with terms between 1 and n, n integeer *)
 type cnf = int * clause list
 
-let name_of_file = Sys.argv.(1)
-
-let text = Arg.read_arg(name_of_file)
 
 
 let check_is_khorn_clause cl =
-in
 	(*
 	Given a clause [cl],
 	[check_is_khorn_clause cl] returns {true} if [cl] is a Khorn clause, that is to say has at most one positive term,
@@ -26,11 +22,10 @@ in
 	
 	let rec atMostOnePos nbPos = function
 		| [] -> true
-		| Neg _ :: q -> check_is_khorn_clause nbpos q
-		| Pos _ :: q -> if nbPos >= 1 then false else check_is_khorn_clause (nbPos + 1) q
+		| Neg _ :: q -> atMostOnePos nbPos q
+		| Pos _ :: q -> if nbPos >= 1 then false else atMostOnePos (nbPos + 1) q
 	in atMostOnePos 0 cl
 
-in
 
 let rec check_is_Horn_normal_form = function
 	
@@ -42,9 +37,9 @@ let rec check_is_Horn_normal_form = function
 	
 	| [] -> true
 	| cl_i::rest_of_cls
-	-> if check_is_khorn_clause cl_i
-		then check_is_Horn_normal_form rest_of_cls
-		else print_string "Not a Horn clause" ; false
+		-> if check_is_khorn_clause cl_i
+			then check_is_Horn_normal_form rest_of_cls
+			else false
 
 let rec find_shortest_clause min_length_in short_c = function
 
@@ -74,12 +69,12 @@ let rec find_shortest_clause min_length_in short_c = function
 					match new_c with
 						| Pos x :: [] -> 1, new_c
 						| Neg x :: [] -> 1, short_c
+						| _ -> failwith "not supposed to happen"
 				)
 				else min_length_in, short_c
 			)
-		in find_shortest next_l next_sc rest_of_cs
+		in find_shortest_clause next_l next_sc rest_of_cs
 
-in
 
 let rec suppr_occ_local x = function
 	(*
@@ -94,21 +89,20 @@ let rec suppr_occ_local x = function
 	| [] -> false, []
 	
 	| (Neg y) :: q
-	-> let is_clause_sat, suppr_rec = suppr_occ_local x
-		in
-		if x = y 
-		then is_clause_sat, suppr_rec
-		else is_clause_sat, ((Neg y) :: suppr_rec)
+		-> let is_clause_sat, suppr_rec = suppr_occ_local x q
+			in
+			if x = y 
+			then is_clause_sat, suppr_rec
+			else is_clause_sat, ((Neg y) :: suppr_rec)
 		
 	
 	| Pos y :: q
-	-> let is_clause_sat, suppr_rec = suppr_occ_local x q
-		in
-		if y = x
-		then true, []
-		else is_clause_sat, ((Pos y) :: suppr_rec)
+		-> let is_clause_sat, suppr_rec = suppr_occ_local x q
+			in
+			if y = x
+			then true, []
+			else is_clause_sat, ((Pos y) :: suppr_rec)
 		
-in
 
 let rec suppr_occ_global x = function
 	(*
@@ -119,45 +113,57 @@ let rec suppr_occ_global x = function
 	| [] -> []
 	
 	| h_cl :: t_cls
-	-> let is_clause_sat, modified_cl = suppr_occ_local x h_cl
-	in
-	if is_clause_sat
-	then suppr_occ_global x t_cls
-	else modified_cl::suppr_occ_global x t_cls
+		-> let is_clause_sat, modified_cl = suppr_occ_local x h_cl
+		in
+		if is_clause_sat
+		then suppr_occ_global x t_cls
+		else modified_cl::(suppr_occ_global x t_cls)
 
-in
 
 let rec pretty_printer_terms = function
 	| [] -> print_string "None\n"
 	| x::[] -> print_string(string_of_int x); print_string "\n"
-	| x::t -> print_string(string_of_int x); print_string " ; "
+	| x::t -> print_string(string_of_int x); print_string " ; "; pretty_printer_terms t
 
-in
 
 let pos_answer list_of_terms =
 	print_string "This formula can be satisfied, with the following terms set at true: " ;
-	pretty_printer_terms list_of_pos_terms ;
+	pretty_printer_terms list_of_terms ;
 	print_string "And the rest at false\n"
 
-in
 
-let neg_answer = print_string "This formula cannot be satisfied"
+let neg_answer () = print_string "This formula cannot be satisfied\n"
 
-in
+
+let rec pretty_print_list = function
+	| [] -> ()
+	| x :: xs ->  (match x with | Pos n -> print_int n | Neg n -> print_int (-n)); if xs != [] then  pretty_print_list xs
+
+let rec pretty_print_list_list = function
+	| [] -> print_string "\n"
+	| x :: xs -> 
+		print_string "("; pretty_print_list x; print_string ")"; if xs != [] then print_string ";"; pretty_print_list_list xs
 
 let rec solve_khorn_clause_quadra list_of_pos_terms = function
 	| [] -> pos_answer list_of_pos_terms
-	| h_cl :: t_cls -> let length, sc = find_shortest_clause (List.length h_cl) h_cl li in
-		if length = 0 then neg_answer
+	| h_cl :: t_cls -> let length, sc = find_shortest_clause (List.length h_cl) h_cl t_cls in
+		if length = 0 then neg_answer ()
 		else
 		(
 			if length = 1
 			then
 			(
 				match sc with
-				| Pos x :: [] -> solve_khorn_clause_quadra (x::list_of_pos_terms) (suppr_occ_global x t_cls)
+				| Pos x :: [] -> solve_khorn_clause_quadra (x::list_of_pos_terms) (suppr_occ_global x (h_cl::t_cls))
 				| Neg x :: [] -> pos_answer list_of_pos_terms
 				| _ -> failwith "Something went wrong at some point."
 			)
 			else pos_answer list_of_pos_terms
 		)
+
+
+let main formula = 
+	if not (check_is_Horn_normal_form formula) then failwith "not an Horn normal formula";
+	solve_khorn_clause_quadra [] formula
+
+let () = main [[Neg 2; Neg 3]; [Pos 2; Neg 3]; [Pos 3]]; pretty_print_list_list [[Neg 2; Neg 3]; [Pos 2; Neg 3]; [Pos 3]]

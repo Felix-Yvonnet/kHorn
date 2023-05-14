@@ -79,7 +79,7 @@ module HNF = struct
     | Neg (Lit q) -> [[Lit (-q)]]
     | Disj (f1, f2) -> [(List.flatten (to_list f1)) @ (List.flatten (to_list f2))]
     | Conj (f1, f2) -> (to_list f1) @ (to_list f2)
-      
+ 
     | _ -> failwith "Bad argument"
 
   let rec is_horn: Formula.t list list -> bool = function

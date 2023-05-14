@@ -12,6 +12,6 @@ rapport:
 	firefox rapport.pdf
 
 clean:
-	rm main
+	rm main rapport.pdf
 
 .PHONY: main
